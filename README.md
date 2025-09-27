@@ -154,32 +154,80 @@ Publish Markdown summary into the pipeline:
 ## 📂 Example Output (Consolidated Summary)
 
 ````markdown
-# DAXRay Consolidated Analysis
 
-## 📂 Model: demo_model_1.SemanticModel
+---
+
+## 📄 Example Output (Markdown Report)
+
+### DAXRay Consolidated Analysis
+
+---
+
+## 📂 Model: Sales.SemanticModel
 
 ### 📊 Totals
-- **Total measures**: 54
-- **Used measures**: 71
-- **Unused measures**: 19
-- **Duplicate definitions**: 1
+
+* **Total measures**: 12
+* **Used measures**: 9
+* **Unused measures**: 3
+* **Duplicate definitions**: 1
 
 ### 🗑️ Unused Measures
-- demo_model_1.Legacy_Target
-- demo_model_1.Temp_Measure
+
+* Sales.TotalProfitMargin
+* Sales.COGS_LastYear
+* Sales.DiscountRate_Test
 
 ### 🔁 Duplicate Measures
-#### Table: dummy_customer_data
+
+#### Table: Sales
 
 ```dax
-calculate(average(dummy_customer_data[annualspend]),dummy_customer_data[isactive]=true())
+SUM(Sales[Revenue]) - SUM(Sales[Cost])
 ```
 
 **Measures:**
 
-* dummy_customer_data.Avg Active Customer Spend
-* dummy_customer_data.Avg Active Customer Spend_1
- 
+* Sales.NetRevenue
+* Sales.Profit
+
+### 📊 Usage Heatmap
+
+| Measure                 | Report A | Report B | Report C |
+| ----------------------- | -------- | -------- | -------- |
+| Sales.TotalRevenue      | ✅        | ✅        |          |
+| Sales.NetRevenue        |          | ✅        | ✅        |
+| Sales.TotalProfitMargin |          |          |          |
+| Sales.AvgOrderValue     | ✅        |          |          |
+| Sales.Profit            |          | ✅        |          |
+
+---
+
+## 📂 Model: Inventory.SemanticModel
+
+### 📊 Totals
+
+* **Total measures**: 8
+* **Used measures**: 6
+* **Unused measures**: 2
+* **Duplicate definitions**: 0
+
+### 🗑️ Unused Measures
+
+* Inventory.StockoutRate_Test
+* Inventory.OverstockFlag
+
+### 📊 Usage Heatmap
+
+| Measure                     | Warehouse Report | Finance Report |
+| --------------------------- | ---------------- | -------------- |
+| Inventory.TotalStock        | ✅                | ✅              |
+| Inventory.StockoutRate      | ✅                |                |
+| Inventory.StockoutRate_Test |                  |                |
+| Inventory.OverstockFlag     |                  |                |
+
+---
+
 ```
 
 

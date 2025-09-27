@@ -43,48 +43,21 @@ if (args.Length > 0 && args[0].Equals("orchestrate", StringComparison.OrdinalIgn
             writer.WriteLine($"## 📂 Model: {result.ModelName}");
             writer.WriteLine();
 
-            writer.WriteLine("### 📊 Totals");
-            writer.WriteLine($"- **Total measures**: {result.Measures.Count}");
-            writer.WriteLine($"- **Used measures**: {result.Usages.SelectMany(u => u.MeasureRefs).Distinct().Count()}");
-            writer.WriteLine($"- **Unused measures**: {result.UnusedMeasures.Count}");
-            writer.WriteLine($"- **Duplicate definitions**: {result.DuplicateMeasures.Count}");
-            writer.WriteLine();
+            var perModelMd = mdReporter.RenderSummary(
+                result.Measures,
+                result.Usages,
+                result.UnusedMeasures,
+                result.DuplicateMeasures,
+                null,                      
+                result.ReportMeasureMap    
+            );
 
-            // unused measures
-            if (result.UnusedMeasures.Count != 0)
-            {
-                writer.WriteLine("### 🗑️ Unused Measures");
-                foreach (var u in result.UnusedMeasures.OrderBy(x => x))
-                {
-                    writer.WriteLine($"- {u}");
-                }
-                writer.WriteLine();
-            }
-
-            // duplicates
-            if (result.DuplicateMeasures.Count != 0)
-            {
-                writer.WriteLine("### 🔁 Duplicate Measures");
-                foreach (var group in result.DuplicateMeasures)
-                {
-                    writer.WriteLine($"#### Table: {group.Table}");
-                    writer.WriteLine();
-                    writer.WriteLine("```dax");
-                    writer.WriteLine(group.Expression);
-                    writer.WriteLine("```");
-                    writer.WriteLine("\n**Measures:**");
-                    foreach (var m in group.Measures)
-                    {
-                        writer.WriteLine($"- {m.Table}.{m.Name}");
-                    }
-                    writer.WriteLine();
-                }
-            }
+            writer.Write(perModelMd);
         }
     }
 
-
     Console.WriteLine($"✅ Orchestration completed. Consolidated report at {summaryPath}");
+
     return;
 }
 
@@ -133,3 +106,4 @@ mdReporterSingle.WriteSummary(
 );
 
 Console.WriteLine("✅ DAXRay single-model analysis completed.");
+

@@ -1,4 +1,5 @@
 ﻿using DAXRay.Core.Models;
+using DAXRay.Core.Utils;
 using Newtonsoft.Json.Linq;
 
 namespace DAXRay.Core.Parsers
@@ -11,54 +12,125 @@ namespace DAXRay.Core.Parsers
 
     public class ReportParser : IReportParser
     {
-        public IEnumerable<ReportMeasureUsage> ParseFromDirectory(string directoryPath)
+        public IEnumerable<ReportMeasureUsage> ParseFromDirectory(string reportDir)
         {
-            if (!Directory.Exists(directoryPath))
-                yield break;
+            var results = new List<ReportMeasureUsage>();
 
-            foreach (var file in Directory.GetFiles(directoryPath, "*.json", SearchOption.AllDirectories))
+            var reportJsonPath = Path.Combine(reportDir, "report.json");
+            if (!File.Exists(reportJsonPath))
+                return results;
+
+            var json = File.ReadAllText(reportJsonPath);
+            var root = JObject.Parse(json);
+
+            // Extract report name from .platform if available
+            var reportName = Path.GetFileName(reportDir);
+            var platformPath = Path.Combine(reportDir, ".platform");
+            if (File.Exists(platformPath))
             {
-                var content = File.ReadAllText(file);
-                var usages = new ReportMeasureUsage
-                {
-                    ReportName = GetReportName(file)
-                };
-
                 try
                 {
-                    var root = JObject.Parse(content);
-
-                    // Traverse sections -> visualContainers -> config
-                    var sectionTokens = root["sections"] ?? new JArray();
-                    foreach (var section in sectionTokens)
+                    var platformJson = JObject.Parse(File.ReadAllText(platformPath));
+                    var displayName = platformJson["metadata"]?["displayName"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(displayName))
                     {
-                        var vcTokens = section["visualContainers"] ?? new JArray();
-                        foreach (var vc in vcTokens)
+                        reportName = displayName;
+                    }
+                }
+                catch
+                {
+                    // fallback to folder name
+                }
+            }
+
+            var usages = new ReportMeasureUsage
+            {
+                ReportName = reportName,
+                MeasureRefs = new List<string>()
+            };
+
+            // Parse sections -> visualContainers -> config -> prototypeQuery
+            var sections = root["sections"] as JArray;
+            if (sections != null)
+            {
+                foreach (var section in sections)
+                {
+                    var visuals = section["visualContainers"] as JArray;
+                    if (visuals == null) continue;
+
+                    foreach (var visual in visuals)
+                    {
+                        var configStr = visual["config"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(configStr)) continue;
+
+                        JObject? config;
+                        try
                         {
-                            var configToken = vc["config"];
-                            if (configToken != null && configToken.Type == JTokenType.String)
+                            config = JObject.Parse(configStr);
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+
+                        var proto = config["singleVisual"]?["prototypeQuery"];
+                        if (proto == null) continue;
+
+                        // Build alias → table map
+                        var aliasMap = new Dictionary<string, string>();
+                        var fromArray = proto["From"] as JArray;
+                        if (fromArray != null)
+                        {
+                            foreach (var f in fromArray)
                             {
-                                try
+                                var alias = f["Name"]?.ToString();
+                                var entity = f["Entity"]?.ToString();
+                                if (!string.IsNullOrEmpty(alias) && !string.IsNullOrEmpty(entity))
                                 {
-                                    var configObj = JObject.Parse(configToken.ToString());
-                                    ExtractMeasuresFromConfig(configObj, usages);
+                                    aliasMap[alias] = entity;
                                 }
-                                catch
+                            }
+                        }
+
+                        // Extract measures
+                        var selectArray = proto["Select"] as JArray;
+                        if (selectArray != null)
+                        {
+                            foreach (var select in selectArray)
+                            {
+                                if (select["Measure"] != null)
                                 {
-                                    // skip malformed configs
+                                    var source = select["Measure"]?["Expression"]?["SourceRef"]?["Source"]?.ToString();
+                                    var property = select["Measure"]?["Property"]?.ToString();
+
+                                    if (!string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(property))
+                                    {
+                                        if (aliasMap.TryGetValue(source, out var tableName))
+                                            usages.MeasureRefs.Add($"{tableName}.{property}");
+                                        else
+                                            usages.MeasureRefs.Add($"{source}.{property}");
+                                    }
+                                    else
+                                    {
+                                        // fallback to "Name"
+                                        var rawName = select["Name"]?.ToString();
+                                        if (!string.IsNullOrWhiteSpace(rawName))
+                                            usages.MeasureRefs.Add(rawName);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[WARN] Failed to parse {file}: {ex.Message}");
-                }
-
-                usages.MeasureRefs = usages.MeasureRefs.Distinct().ToList();
-                yield return usages;
             }
+
+            usages.MeasureRefs = usages.MeasureRefs
+                .Select(NameNormalizer.Normalize)
+                .Distinct()
+                .ToList();
+
+            results.Add(usages);
+            return results;
         }
 
         private void ExtractMeasuresFromConfig(JObject config, ReportMeasureUsage usages)

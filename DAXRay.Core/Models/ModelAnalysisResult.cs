@@ -9,4 +9,5 @@ public class ModelAnalysisResult
     public List<ReportMeasureUsage> Usages { get; set; } = new();
     public List<string> UnusedMeasures { get; set; } = new();
     public List<DuplicateMeasureGroup> DuplicateMeasures { get; set; } = new();
+    public Dictionary<string, HashSet<string>> ReportMeasureMap { get; set; } = new();
 }
