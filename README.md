@@ -157,8 +157,6 @@ Publish Markdown summary into the pipeline:
 
 ---
 
-## 📄 Example Output (Markdown Report)
-
 ### DAXRay Consolidated Analysis
 
 ---
