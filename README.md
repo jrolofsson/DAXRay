@@ -83,7 +83,7 @@ Analyze one semantic model and its reports.
 
 ```bash
 dotnet DAXRay.Cli.dll \
-  --models /path/to/business_travel_model.SemanticModel/definition/tables \
+  --models /path/to/demo_data_1.SemanticModel/definition/tables \
   --reports /path/to/serve/Report1.Report \
   --output /path/to/output
 ```
