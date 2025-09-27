@@ -1,0 +1,49 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]*/
+
+# Rider / VSCode / Visual Studio cruft
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+project.lock.json
+*.nuget.props
+*.nuget.targets
+packages/
+# except build/ (keep NuGet restore artifacts if needed)
+!build/
+
+# Build artifacts
+publish/
+dist/
+out/
+artifacts/
+
+# Coverage / test
+*.coverage
+*.coveragexml
+TestResults/
+*.trx
+
+# OS-generated
+.DS_Store
+Thumbs.db
+
+# DAXRay specific (optional)
+output/
+*.daxray/
+.vs
